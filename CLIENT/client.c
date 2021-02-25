@@ -1,4 +1,3 @@
-//testtest
 #include <ctype.h>
 #include "client_head.h"
 

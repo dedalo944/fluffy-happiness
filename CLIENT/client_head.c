@@ -17,27 +17,7 @@ int copen(char *ip_addrs, int port){
 	}
     	return sockfd;
 }
-//calcolo distanza tra giocatore ed oggetto
-int distanza(int x1, int y1, int x2, int y2){
-	int result=sqrt(((x2-x1)*(x2-x1))+((y2-y1)*(y2-y1)));
-	return result;
-}
 
-
-
-
-int* calculateFog(int* prevMap, int row, int col, int x, int y){
-
-	int* maptmp= (int*) calloc(20*20,sizeof(int));
-	for(int i=0;i<row;i++){
-		for(int j=0;j<col;j++){
-			if(distanza(x,y,i,j)<=1 || *(prevMap+i*col+j)==1){
-				*(maptmp+(i*col)+j)=1;
-				}
-		}
-	}
-	return maptmp;
-}
 
 
 int* draw_map(int conn, int* prevMap){
@@ -50,10 +30,7 @@ int* draw_map(int conn, int* prevMap){
 	if(sck_msg[0] =='M' && sck_msg[1] == 'A' && sck_msg[2] =='P'){
 	memmove (sck_msg, sck_msg+3, strlen (sck_msg+3) + 1);
 	sscanf(sck_msg, "%d %d %d %d %d %s",&row,&col,&x,&y,&point,sck_msg);
-	int* FogMap;
-	FogMap=calculateFog(prevMap, row, col, x, y);
-	free(prevMap);
-	prevMap=FogMap;
+	
 
 	char level[row][col];
 	int flag[row][col];
@@ -75,7 +52,7 @@ int* draw_map(int conn, int* prevMap){
 	for(int i=0;i<row;i++){
 		for(int j=0;j<col;j++){
 			flag[i][j] = (int)sck_msg[k];
-			if((level[i][j]=='1' ||  level[i][j]=='9'))
+			/*if((level[i][j]=='1' ||  level[i][j]=='9'))
 					printf(RED "%c ",level[i][j]);
 		    else if((level[i][j]=='2' || level[i][j]=='8'))
 					printf(BLUE "%c ", level[i][j]);
@@ -83,11 +60,12 @@ int* draw_map(int conn, int* prevMap){
 					printf(GREEN "%c ", level[i][j]);
 		    else if((level[i][j]=='4' ||level[i][j]=='6'))
 					printf(YELLOW "%c ", level[i][j]);
-                    else if(*(prevMap+i*col+j)==1 ){
+					*/
+                     if(*(prevMap+i*col+j)==1 ){
                     		printf(RESET "%c ",level[i][j]);
                     }
                     else
-                    	 printf(RESET "@ ");
+                    	 printf(RESET "%c ",level[i][j]);
 			k++;
 		}
 		printf("\n");
