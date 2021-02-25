@@ -14,7 +14,7 @@ int main(int argc, char* argv[]){
 	char reply,next;
 	user client_user;
 	char sck_msg[MSGLEN];
-	int winmatch=0;
+	int winmatch=40;
 	char direction;
 
 	if(argc != 3){
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
 					memset(sck_msg, '\0', MSGLEN);
 
 
-					//Starting game mechanics
+					//Starting game mechanics se winmatch non è uguale a 40 continua a giocare
 					while(!winmatch){
 
 						printf("\033[H\033[J"); //system cls
