@@ -277,7 +277,7 @@ void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag
 			break;
 	}
 
-
+	//if flag==0 || flag==startx) fare +1 a points
 	if(((level+x*COLUMN)+y)->solid == 1 && ( *startx != x || *starty!=y)){
 		//remove past position
 		(level+((*startx)*COLUMN)+(*starty))->symbol='.';
@@ -293,7 +293,11 @@ void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag
 		(level+(x*COLUMN)+y)->points=points;
 		*startx = x;
 		*starty = y;
-	} else {
+	} 
+	else if() //flag != 0 e !=flag startx allora lancio di dadi
+		//lanciodadisfida se vinci +1 se perdi 0, il perdente -1, per cercare il perdente prendere il suo flag e controllare su tutta la mappa chi cazzo è
+		//findUtente() se perde
+	else {
 
 		//ripristino giocatore
 		(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
@@ -399,7 +403,6 @@ void placePackage(map* level, int* startx, int* starty){
 	int points = (level+(x*COLUMN)+y)->points;
 	char username[TEXTLEN];
 	strcpy(username,(level+(x*COLUMN)+y)->title);
-
 
 	if(	( (level+((x+1)*COLUMN)+(y))->symbol == '9' ) || ((level+*startx*COLUMN+*starty+1))->symbol == '9'||
 		((level+((*startx)*COLUMN))+(*starty-1))->symbol == '9' ||(level+((x-1)*COLUMN)+(y))->symbol == '9'){
@@ -548,6 +551,9 @@ void placePackage(map* level, int* startx, int* starty){
 
 }
 
+
+//funzione timeout che se il tempo finisce, blocca tutto
+void timeout();
 
 
 

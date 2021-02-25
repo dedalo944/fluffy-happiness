@@ -19,11 +19,11 @@
 #define LOCKS 4
 
 struct map_struct{
-	char symbol;
-	char title[TEXTLEN];
-	int flag;
+	char symbol; //O utente . locazionedovetimuovi
+	char title[TEXTLEN]; 
+	int flag; //id utente
 	int solid;
-	int points; //oggetti depositati
+	int points; //punti fatti
 	int sfd;
 };
 
@@ -44,6 +44,12 @@ int accept_client(int sockfd);
 int check_user_exsist(char username[],char password[]);
 void sendMapToClient(map* level,int sdf,int x,int y);
 void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag);
+
+void sfidaterritorio(); //lancio di dadi doppio
+void timeout();
+
+int findUtente(int flag1); //cerca l'utente che ha perso e fa -1
+
 
 void takePackage(map* level, int* startx, int* starty);
 void placePackage(map* level, int* startx, int* starty);
