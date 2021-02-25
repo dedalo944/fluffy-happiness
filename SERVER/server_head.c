@@ -11,65 +11,16 @@ void loadlevel(map *level){
         //generazione bound
 	for(int i = 0; i<ROW; i++){
 		for(int j = 0; j<COLUMN; j++){
-			if((i==0)||(i==ROW-1)||(j==0)||(j==COLUMN-1)){
-				(level+(i*COLUMN)+j)->symbol='#';
-				strcpy((level+(i*COLUMN)+j)->title,"wall");
-				(level+(i*COLUMN)+j)->solid=0; //isSolid
-			} else {
+			
 				(level+(i*COLUMN)+j)->symbol='.';
 				strcpy((level+(i*COLUMN)+j)->title,"area");
 				(level+(i*COLUMN)+j)->solid=1;
-			}
 			(level+(i*COLUMN)+j)->flag=0;
 			(level+(i*COLUMN)+j)->points=0;
 		}
 	}
 
-        //random wall in da map
-	for(int k=0;k<30;k++){
-		int random_number_x = (rand() % ((COLUMN-1) + 1 - 1)) + 1;
-		int random_number_y = (rand() % ((ROW-1) + 1 - 1)) + 1;
-		(level+(ROW*random_number_x)+random_number_y)->symbol='#';
-		strcpy((level+(ROW*random_number_x)+random_number_y)->title,"wall");
-		(level+(ROW*random_number_x)+random_number_y)->solid=0;
-		(level+(ROW*random_number_x)+random_number_y)->points=0;
-	}
-
-        //random pacco da 1 a 4
-	for(int k=1;k<=ITEMS;k++){
-		int random_number_x,random_number_y;
-
-                //find valid coords for k-th pacco
-		do{
-			random_number_x = (rand() % ((COLUMN-1) + 1 - 1)) + 1;
-			random_number_y = (rand() % ((ROW-1) + 1 - 1)) + 1;
-		} while((level+(ROW*random_number_x)+random_number_y)->symbol != '.');
-
-                //set flag
-		(level+(ROW*random_number_x)+random_number_y)->symbol=k+'0';
-		strcpy((level+(ROW*random_number_x)+random_number_y)->title,"flag");
-		(level+(ROW*random_number_x)+random_number_y)->flag=k;
-		(level+(ROW*random_number_x)+random_number_y)->solid=0;
-		(level+(ROW*random_number_x)+random_number_y)->points=0;
-	}
-
-        //random destinationPacco da 9 a 6
-	for(int k=9;k>ITEMS+1;k--){
-		int random_number_x,random_number_y;
-
-                //find valid coords for k-th destinationPacco
-		do{
-			random_number_x = (rand() % ((COLUMN-1) + 1 - 1)) + 1;
-			random_number_y = (rand() % ((ROW-1) + 1 - 1)) + 1;
-		} while((level+(ROW*random_number_x)+random_number_y)->symbol != '.');
-
-                //set flag
-		(level+(ROW*random_number_x)+random_number_y)->symbol=k+'0';
-		strcpy((level+(ROW*random_number_x)+random_number_y)->title,"basket");
-		(level+(ROW*random_number_x)+random_number_y)->flag=k;
-		(level+(ROW*random_number_x)+random_number_y)->solid=0;
-		(level+(ROW*random_number_x)+random_number_y)->points=0;
-	}
+        
 	return;
 }
 
@@ -197,19 +148,7 @@ void *client_manager(void *arguments){
 									read(sdf,socket_msg,MSGLEN);
 								}
 								free(userlist);
-							}
-
-							else if(reply == 'p'){
-                                                            takePackage(level,&x,&y);
-
-                                                        }
-                                                        else if(reply == 'k'){
-
-                                                             placePackage(level,&x,&y);
-                                                             baskets-=1;
-                                                                if((level+(x*COLUMN)+y)->points == 2 || baskets==0 ){
-                                                                    win_flag=1;
-                                                            }
+ 
                                                         } else {
 								pthread_mutex_lock(&mutex[2]);
 								move_actor(level,&x,&y,reply,&win_flag);
@@ -222,13 +161,13 @@ void *client_manager(void *arguments){
 							if(win_flag){
 								pthread_mutex_lock(&mutex[1]);
 								//checkWinner()
-								if(baskets!=0){
+								/*if(baskets!=0){
 									strcat(victory,username);
 								}
 								else{
 									findWinner(level);
 									strcat(victory,winner);
-								}
+								}*/
 								log_msg(strcat(victory," has won!"),sdf,mutex);
 
 								pthread_mutex_unlock(&mutex[1]);
