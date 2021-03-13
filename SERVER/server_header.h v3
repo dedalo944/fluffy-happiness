@@ -1,0 +1,61 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <signal.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <fcntl.h>
+
+#define MSGLEN 512
+#define TEXTLEN 25
+#define ROW 20
+#define COLUMN 20
+#define MAXCONN 15
+#define ITEMS 4
+
+#define LOCKS 4
+
+struct map_struct{
+	char symbol; //O utente . locazionedovetimuovi
+	char title[TEXTLEN]; 
+	int flag; //id utente
+	int solid;
+	int points; //punti fatti
+	int sfd;
+};
+
+typedef struct map_struct map;
+
+struct argm_thread{
+	int sfd;
+	map* level;
+	pthread_mutex_t* mut;
+};
+typedef struct argm_thread argm;
+void close_handler();
+void loadlevel(map* level);
+void *client_manager(void *arguments);
+int credential_saving(char username[],char password[],pthread_mutex_t *mutex);
+int bind_server(int port);
+int accept_client(int sockfd);
+int check_user_exsist(char username[],char password[]);
+void sendMapToClient(map* level,int sdf,int x,int y);
+void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag);
+
+void sfidaterritorio(); //lancio di dadi doppio
+void timeout();
+int lanciodadi();
+void aggiornaPerdente(int flag, map* level); //cerca l'utente che ha perso e fa -1
+
+
+void takePackage(map* level, int* startx, int* starty);
+void placePackage(map* level, int* startx, int* starty);
+void findWinner(map* level);
+
+void leave_map(map* level,int x,int y);
+void wait_disconn(map* level);
+void log_msg(char msg[MSGLEN],int sfd,pthread_mutex_t *mutex);
+void substring(char s[], char sub[], int p, int l);
