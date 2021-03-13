@@ -47,8 +47,8 @@ void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag
 
 void sfidaterritorio(); //lancio di dadi doppio
 void timeout();
-
-int findUtente(int flag1); //cerca l'utente che ha perso e fa -1
+int lanciodadi();
+void aggiornaPerdente(int flag, map* level); //cerca l'utente che ha perso e fa -1
 
 
 void takePackage(map* level, int* startx, int* starty);
