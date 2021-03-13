@@ -14,7 +14,7 @@ int main(int argc, char* argv[]){
 	char reply,next;
 	user client_user;
 	char sck_msg[MSGLEN];
-	int winmatch=40;
+	int winmatch=0;
 	char direction;
 
 	if(argc != 3){
