@@ -294,7 +294,7 @@ void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag
 		*startx = x;
 		*starty = y;
 	} 
-	else if((level+(x*COLUMN)+y)->flag != 0 && (level+(x*COLUMN)+y)->flag!=startx) {
+	else if((level+(x*COLUMN)+y)->flag != 0 && (level+(x*COLUMN)+y)->flag !=x) {
 		int esito = lanciodadi();
 		
 		if(esito==1){  //attaccante vince
