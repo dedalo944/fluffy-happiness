@@ -290,7 +290,7 @@ void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag
 		strcpy((level+(x*COLUMN)+y)->title,username);
 		(level+(x*COLUMN)+y)->flag=flag;
 		(level+(x*COLUMN)+y)->solid=0;
-		(level+(x*COLUMN)+y)->points=points;
+		(level+(x*COLUMN)+y)->points=points+1;
 		*startx = x;
 		*starty = y;
 	} 
