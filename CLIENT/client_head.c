@@ -3,7 +3,7 @@
 
 int copen(char *ip_addrs, int port){
 	struct sockaddr_in serv_addr;
-    struct hostent *server;
+    	struct hostent *server;
 	int sockfd;
 
 	sockfd=socket(AF_INET, SOCK_STREAM, 0);
@@ -52,15 +52,7 @@ int* draw_map(int conn, int* prevMap){
 	for(int i=0;i<row;i++){
 		for(int j=0;j<col;j++){
 			flag[i][j] = (int)sck_msg[k];
-			/*if((level[i][j]=='1' ||  level[i][j]=='9'))
-					printf(RED "%c ",level[i][j]);
-		    else if((level[i][j]=='2' || level[i][j]=='8'))
-					printf(BLUE "%c ", level[i][j]);
-		    else if((level[i][j]=='3' || level[i][j]=='7'))
-					printf(GREEN "%c ", level[i][j]);
-		    else if((level[i][j]=='4' ||level[i][j]=='6'))
-					printf(YELLOW "%c ", level[i][j]);
-					*/
+			
                      if(*(prevMap+i*col+j)==1 ){
                     		printf(RESET "%c ",level[i][j]);
                     }
