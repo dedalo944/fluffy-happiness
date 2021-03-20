@@ -6,17 +6,23 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <netdb.h>
 #include <fcntl.h>
 
 #define MSGLEN 512
-#define TEXTLEN 25
+#define TEXTLEN 40
 #define ROW 20
 #define COLUMN 20
 #define MAXCONN 15
 #define ITEMS 4
 
 #define LOCKS 4
+
+#define TIMELIMIT_S 5
+#define TIMELIMIT_US 1000
+
 
 struct map_struct{
 	char symbol; //O utente . locazionedovetimuovi
@@ -26,7 +32,6 @@ struct map_struct{
 	int points; //punti fatti
 	int sfd;
 };
-
 typedef struct map_struct map;
 
 struct argm_thread{
@@ -35,6 +40,7 @@ struct argm_thread{
 	pthread_mutex_t* mut;
 };
 typedef struct argm_thread argm;
+
 void close_handler();
 void loadlevel(map* level);
 void *client_manager(void *arguments);
@@ -45,14 +51,9 @@ int check_user_exsist(char username[],char password[]);
 void sendMapToClient(map* level,int sdf,int x,int y);
 void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag);
 
-void sfidaterritorio(); //lancio di dadi doppio
-void timeout();
 int lanciodadi();
 void aggiornaPerdente(int flag, map* level); //cerca l'utente che ha perso e fa -1
 
-
-void takePackage(map* level, int* startx, int* starty);
-void placePackage(map* level, int* startx, int* starty);
 void findWinner(map* level);
 
 void leave_map(map* level,int x,int y);
