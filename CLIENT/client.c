@@ -125,6 +125,24 @@ int main(int argc, char* argv[]){
 								scanf("%c",&next);
 							} while(tolower(next)!='y');
 						}
+						
+
+						//got the time remaining
+						if(direction == 't'){
+							write(conn,"time",sizeof("time"));
+							memset(sck_msg, '\0', MSGLEN);
+							read(conn,sck_msg,MSGLEN);
+							printf("Time remaining: %s \n",sck_msg);
+							write(conn,"ok",sizeof("ok"));
+							do{
+								printf("\nPress <Y> to continue: ");
+								clear();
+								scanf("%c",&next);
+							} while(tolower(next)!='y');
+						
+						
+						}
+
 
 						memset(sck_msg, '\0', MSGLEN);
 						read(conn,sck_msg,MSGLEN);
