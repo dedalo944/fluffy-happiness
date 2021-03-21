@@ -1,20 +1,21 @@
 #include "server_head.h"
-#include <time.h>
+
+
+#define STDIN 0
 
 char victory[TEXTLEN];
 char winner[TEXTLEN];
-int baskets=4;
 
 
-void loadlevel(map *level){
+
+void loadlevel(map* level){
 
         //generazione bound
 	for(int i = 0; i<ROW; i++){
 		for(int j = 0; j<COLUMN; j++){
-			
-				(level+(i*COLUMN)+j)->symbol='.';
-				strcpy((level+(i*COLUMN)+j)->title,"area");
-				(level+(i*COLUMN)+j)->solid=1;
+			(level+(i*COLUMN)+j)->symbol='.';
+			strcpy((level+(i*COLUMN)+j)->title,"area");
+			(level+(i*COLUMN)+j)->solid=1;
 			(level+(i*COLUMN)+j)->flag=0;
 			(level+(i*COLUMN)+j)->points=0;
 		}
@@ -62,8 +63,9 @@ void *client_manager(void *arguments){
 	argm arg = *(argm*)arguments;
 	pthread_mutex_t* mutex = arg.mut;
 	int sdf = arg.sfd;
+	
 	map* level = arg.level;
-	char *userlist,sub[MSGLEN];
+	char *userlist,*tempo,sub[MSGLEN];
 
 	log_msg("User has been connected",sdf,mutex);
 
@@ -98,7 +100,7 @@ void *client_manager(void *arguments){
 				if(check_user_exsist(username,password)){
 					write(sdf,"Success",sizeof("Success"));
 
-                                        flag = 0;
+                                        flag = 1 + (rand() % 100000);
 
 					do{
                                             x = (rand() % ((COLUMN-1) + 1 - 1)) + 1;
@@ -106,18 +108,23 @@ void *client_manager(void *arguments){
 
 					}while((level+(x*COLUMN)+y)->symbol != '.');
 
-
+				
 					//Drawing user on map
 					pthread_mutex_lock(&mutex[2]);
 					(level+(x*COLUMN)+y)->symbol = 'O';
 					strcpy((level+(x*COLUMN)+y)->title,username);
 					(level+(x*COLUMN)+y)->flag=flag;
 					(level+(x*COLUMN)+y)->solid=0;
-					(level+(x*COLUMN)+y)->points=0;
+					(level+(x*COLUMN)+y)->points=1;
 					pthread_mutex_unlock(&mutex[2]);
-
+			
+					time_t start=time(0);
+					int timer=30;
+							
+									
+				
 					while(strlen(victory)==0){
-
+												
 						sendMapToClient(level,sdf,x,y);
 
 						if(read(sdf,&reply,sizeof(char))<=0){ //if any error occurs, so thread dies.
@@ -125,18 +132,28 @@ void *client_manager(void *arguments){
 							pthread_exit(NULL);
 						} else {
 							if(reply == 'l'){
-
+								char* territories;
 								read(sdf,socket_msg,MSGLEN);
 								userlist = (char*)malloc(MSGLEN*sizeof(char));
 								if(socket_msg[0]=='l'&& socket_msg[1]=='o' && socket_msg[2]=='g'){
 									memset(userlist,'\0',MSGLEN);
 
-									//catching users's name from the map
+									//catching users' name from the map
 									for(int i=0;i<ROW;i++){
 										for(int j=0;j<COLUMN;j++){
 											if((level+(i*COLUMN)+j)->symbol == 'O'){
 												strcat(userlist,(level+(i*COLUMN)+j)->title);
-												strcat(userlist," - ");
+												for(int t=0;t<ROW;t++){
+													for(int u=0;u<COLUMN;u++){
+														//catching the users'territories
+														if((level+(i*COLUMN)+j)->flag == (level+(t*COLUMN)+u)->flag){
+															territories=(char*)malloc(MSGLEN*sizeof(char));
+															sprintf(territories," %d " "-" " %d ",t,u);
+															strcat(userlist,territories);	
+														}
+													}
+												}
+												strcat(userlist," - \n");
 												}
 										}
 									}
@@ -149,27 +166,53 @@ void *client_manager(void *arguments){
 								}
 								free(userlist);
  
-                                                        } else {
+                                                        } 
+                                                        if(reply == 't'){
+                                                        	//restituisce il  tempo rimanente
+
+                                                        	read(sdf, socket_msg,MSGLEN);
+                                                        	tempo = (char*)malloc(MSGLEN*sizeof(char));
+                                                        	if(socket_msg[0]=='t'&& socket_msg[1]=='i' && socket_msg[2]=='m' && socket_msg[3]=='e'){
+
+                                                        		memset(tempo,'\0',MSGLEN);
+                                                        		//calculating time remaining and stamp on video
+                                                        		long remaining= timer-(time(0)-start);
+                                                        		sprintf(tempo,"%ld",remaining);
+                                                        		write(sdf,tempo,sizeof(tempo));
+									memset(socket_msg,'\0',MSGLEN);
+									read(sdf,socket_msg,MSGLEN);
+                                                        	}
+
+                                                        	free(tempo);
+                                                        }
+                                                        
+                                                        else {
 								pthread_mutex_lock(&mutex[2]);
 								move_actor(level,&x,&y,reply,&win_flag);
+
 								pthread_mutex_unlock(&mutex[2]);
 							}
 
 
-
+							long elapsed= time(0)-start;
+							
 							//checking winner
-							if(win_flag){
+							if(win_flag || elapsed>timer ){
 								pthread_mutex_lock(&mutex[1]);
-								//checkWinner()
-								/*if(baskets!=0){
-									strcat(victory,username);
-								}
+								//findWinner(level);
+								if(win_flag==1){
+									strcat(victory,winner);
+									}
 								else{
 									findWinner(level);
 									strcat(victory,winner);
-								}*/
-								log_msg(strcat(victory," has won!"),sdf,mutex);
-
+								}
+								if(elapsed>timer){
+									log_msg(strcat(victory," has won! (due to timeout)"),sdf,mutex);
+								} 
+								else{
+									log_msg(strcat(victory," has won!"),sdf,mutex);
+								}
 								pthread_mutex_unlock(&mutex[1]);
 								write(sdf,victory,sizeof(victory));
 								//clearing map from the player
@@ -193,6 +236,7 @@ void *client_manager(void *arguments){
 							}
 						}
 					}
+					
 					close(sdf);
 					pthread_exit(NULL);
 
@@ -278,25 +322,78 @@ void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag
 	}
 
 	//if flag==0 || flag==startx) fare +1 a points
-	if(((level+x*COLUMN)+y)->solid == 1 && ( *startx != x || *starty!=y)){
+	if( ((level+x*COLUMN)+y)->solid == 1 && ( *startx != x || *starty!=y) ) {
 		//remove past position
-		(level+((*startx)*COLUMN)+(*starty))->symbol='.';
-		strcpy((level+((*startx)*COLUMN)+(*starty))->title,"area");
-		(level+((*startx)*COLUMN)+(*starty))->flag=0;
-		(level+((*startx)*COLUMN)+(*starty))->solid=1;
-		(level+((*startx)*COLUMN)+(*starty))->points=0;
-		//add new symbol
-		(level+(x*COLUMN)+y)->symbol ='O';
-		strcpy((level+(x*COLUMN)+y)->title,username);
-		(level+(x*COLUMN)+y)->flag=flag;
-		(level+(x*COLUMN)+y)->solid=0;
-		(level+(x*COLUMN)+y)->points=points;
+		if(((level+x*COLUMN)+y)->flag == 0){
+			(level+((*startx)*COLUMN)+(*starty))->symbol='.';
+			strcpy((level+((*startx)*COLUMN)+(*starty))->title,"area");
+			(level+((*startx)*COLUMN)+(*starty))->flag= flag;
+			(level+((*startx)*COLUMN)+(*starty))->solid=1;
+			(level+((*startx)*COLUMN)+(*starty))->points=0;
+			//add new symbol
+			(level+(x*COLUMN)+y)->symbol ='O';
+			strcpy((level+(x*COLUMN)+y)->title,username);
+			(level+(x*COLUMN)+y)->flag=flag;
+			(level+(x*COLUMN)+y)->solid=0;
+			(level+(x*COLUMN)+y)->points=points+1;
+			}
+		else
+
+			if(((level+x*COLUMN)+y)->flag != flag){
+			int esito = lanciodadi();
+
+			if(esito==1){  //attaccante vince
+				int perdente= (level+(x*COLUMN)+y)->flag;
+				
+				(level+((*startx)*COLUMN)+(*starty))->symbol='.';
+				strcpy((level+((*startx)*COLUMN)+(*starty))->title,"area");
+				(level+((*startx)*COLUMN)+(*starty))->flag= flag;
+				(level+((*startx)*COLUMN)+(*starty))->solid=1;
+				(level+((*startx)*COLUMN)+(*starty))->points=0;
+
+		   		
+		   		aggiornaPerdente(perdente,level);
+		   		(level+(x*COLUMN)+y)->symbol ='O';
+				strcpy((level+(x*COLUMN)+y)->title,username);
+				(level+(x*COLUMN)+y)->flag=flag;
+				(level+(x*COLUMN)+y)->solid=0;
+				(level+(x*COLUMN)+y)->points=points+1;
+			}
+			else {
+
+				(level+((*startx)*COLUMN)+(*starty))->symbol='.';
+				strcpy((level+((*startx)*COLUMN)+(*starty))->title,"area");
+				(level+((*startx)*COLUMN)+(*starty))->flag= flag;
+				(level+((*startx)*COLUMN)+(*starty))->solid=1;
+				(level+((*startx)*COLUMN)+(*starty))->points=0;
+				
+				//add new symbol
+				(level+(x*COLUMN)+y)->symbol ='O';
+				strcpy((level+(x*COLUMN)+y)->title,username);
+				(level+(x*COLUMN)+y)->flag=flag;
+				(level+(x*COLUMN)+y)->solid=0;
+				(level+(x*COLUMN)+y)->points=points;
+				}
+			}
+			else
+			{
+				(level+((*startx)*COLUMN)+(*starty))->symbol='.';
+				strcpy((level+((*startx)*COLUMN)+(*starty))->title,"area");
+				(level+((*startx)*COLUMN)+(*starty))->flag= flag;
+				(level+((*startx)*COLUMN)+(*starty))->solid=1;
+				(level+((*startx)*COLUMN)+(*starty))->points=0;
+				//add new symbol
+				(level+(x*COLUMN)+y)->symbol ='O';
+				strcpy((level+(x*COLUMN)+y)->title,username);
+				(level+(x*COLUMN)+y)->flag=flag;
+				(level+(x*COLUMN)+y)->solid=0;
+				(level+(x*COLUMN)+y)->points=points;
+			}
+		
 		*startx = x;
 		*starty = y;
 	} 
-	else if() //flag != 0 e !=flag startx allora lancio di dadi
-		//lanciodadisfida se vinci +1 se perdi 0, il perdente -1, per cercare il perdente prendere il suo flag e controllare su tutta la mappa chi cazzo è
-		//findUtente() se perde
+	 
 	else {
 
 		//ripristino giocatore
@@ -307,253 +404,40 @@ void move_actor(map* level,int* startx,int* starty, char direction,int* win_flag
 		(level+((*startx)*COLUMN)+(*starty))->points=points;
 	}
 
-
-	return;
-}
-
-
-
-void takePackage(map* level, int* startx, int* starty){
-//saving user stuffs into some variables
-
-	int x=*startx, y=*starty;
-	int flag = (level+(x*COLUMN)+y)->flag;
-	int points = (level+(x*COLUMN)+y)->points;
-	char username[TEXTLEN];
-
-
- 	if((level+(x*COLUMN)+y)->flag==0){
-		for(int k=1;k<=ITEMS;k++){
-			if( (level+((x+1)*COLUMN)+(y))->symbol == k+'0' ){
-				//assegna flag giocatore
-				(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-				strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-				(level+((*startx*COLUMN)+*starty))->flag=(level+((x+1)*COLUMN)+(y))->flag;
-				(level+((*startx)*COLUMN)+(*starty))->solid=0;
-				(level+((*startx)*COLUMN)+(*starty))->points=points;
-				flag = (level+(x*COLUMN)+y)->flag;
-
-				//remove past position
-				(level+((x+1)*COLUMN)+(y))->symbol='.';
-				strcpy((level+((x+1)*COLUMN)+(y))->title,"area");
-				(level+((x+1)*COLUMN)+(y))->flag=0;
-				(level+((x+1)*COLUMN)+(y))->solid=1;
-				(level+((x+1)*COLUMN)+(y))->points=0;
-			}
-			else if( ((level+*startx*COLUMN+*starty+1))->symbol == k+'0' ){
-				//assegna flag giocatore
-				(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-				strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-				(level+((*startx*COLUMN)+*starty))->flag=(level+((*startx*COLUMN))+(*starty+1))->flag;
-				(level+((*startx)*COLUMN)+(*starty))->solid=0;
-				(level+((*startx)*COLUMN)+(*starty))->points=points;
-				flag = (level+(x*COLUMN)+y)->flag;
-
-				//remove past position
-				(level+((*startx)*COLUMN)+((*starty)+1))->symbol='.';
-				strcpy(((level+((*startx*COLUMN))+*starty+1))->title,"area");
-				(level+((*startx)*COLUMN)+((*starty)+1))->flag=0;
-				(level+((*startx)*COLUMN)+((*starty)+1))->solid=1;
-				(level+((*startx)*COLUMN)+((*starty)+1))->points=0;
-			}
-			else if(((level+((*startx)*COLUMN))+(*starty-1))->symbol == k+'0' ){
-				//assegna flag giocatore
-				(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-				strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-				(level+((*startx*COLUMN)+*starty))->flag=(level+((*startx*COLUMN-1)+*starty))->flag;
-				(level+((*startx)*COLUMN)+(*starty))->solid=0;
-				(level+((*startx)*COLUMN)+(*starty))->points=points;
-				flag = (level+(x*COLUMN)+y)->flag;
-
-				//remove past position
-				(level+(((*startx)*COLUMN-1))+(*starty))->symbol='.';
-				strcpy(((level+((*startx*COLUMN-1))+*starty))->title,"area");
-				(level+(((*startx)*COLUMN-1))+(*starty))->flag=0;
-				(level+(((*startx)*COLUMN-1))+(*starty))->solid=1;
-				(level+(((*startx)*COLUMN-1))+(*starty))->points=0;
-			}
-			else if((level+((x-1)*COLUMN)+(y))->symbol == k+'0' ){
-
-				//assegna flag giocatore
-				(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-				strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-				(level+((*startx)*COLUMN)+(*starty))->flag=(level+((x-1)*COLUMN)+(y))->flag;
-				(level+((*startx)*COLUMN)+(*starty))->solid=0;
-				(level+((*startx)*COLUMN)+(*starty))->points=points;
-				flag = (level+(x*COLUMN)+y)->flag;
-
-
-				//remove past position
-				(level+((x-1)*COLUMN)+(y))->symbol='.';
-				strcpy((level+((x-1)*COLUMN)+(y))->title,"area");
-				(level+((x-1)*COLUMN)+(y))->flag=0;
-				(level+((x-1)*COLUMN)+(y))->solid=1;
-				(level+((x-1)*COLUMN)+(y))->points=0;
-
-			}
-		}
+	if(((level+(x*COLUMN)+y)->points) == 20 ){
+		*win_flag=1;
+		strcpy(winner,username);
 	}
 	return;
 }
 
-void placePackage(map* level, int* startx, int* starty){
-	int x=*startx, y=*starty;
-	int tmpx, tmpy;
-	int flag = (level+(x*COLUMN)+y)->flag;
-	int points = (level+(x*COLUMN)+y)->points;
-	char username[TEXTLEN];
-	strcpy(username,(level+(x*COLUMN)+y)->title);
+int lanciodadi()    // Funzione lancio dadi
+{
+   
+   int attaccante = 1 + (rand() % 6);
+   int difensore = 1 + (rand() % 6);
+   if(attaccante>difensore)
+	   
+      return 1;
 
-	if(	( (level+((x+1)*COLUMN)+(y))->symbol == '9' ) || ((level+*startx*COLUMN+*starty+1))->symbol == '9'||
-		((level+((*startx)*COLUMN))+(*starty-1))->symbol == '9' ||(level+((x-1)*COLUMN)+(y))->symbol == '9'){
-		if(( (level+((x+1)*COLUMN)+(y))->symbol == '9' )){
-			tmpx=x+1;
-			tmpy=y;
-			}
-		else if( ((level+*startx*COLUMN+*starty+1))->symbol == '9' ){
-			tmpx=x;
-			tmpy=y+1;
-			}
-		else if(((level+((*startx)*COLUMN))+(*starty-1))->symbol == '9' ){
-			tmpx=x;
-			tmpy=y-1;
-			}
-		else if((level+((x-1)*COLUMN)+(y))->symbol == '9'){
-			tmpx=x-1;
-			tmpy=y;
-			}
+   return 0;
 
 
-		if(((level+((*startx)*COLUMN))+(*starty))->flag == 1){
-				//assegna flag giocatore
-				(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-				strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-				(level+((*startx)*COLUMN)+(*starty))->flag=0;
-				(level+((*startx)*COLUMN)+(*starty))->solid=0;
-				(level+((*startx)*COLUMN)+(*starty))->points=points+1;
-				//remove past position
-				(level+(((tmpx)*COLUMN))+(tmpy))->symbol='.';
-				strcpy(((level+((tmpx)*COLUMN))+(tmpy))->title,"area");
-				(level+(((tmpx)*COLUMN))+(tmpy))->flag=0;
-				(level+(((tmpx)*COLUMN))+(tmpy))->solid=1;
-				(level+(((tmpx)*COLUMN))+(tmpy))->points=0;
+} 
+void aggiornaPerdente(int flag_loser, map* level){
+	
+	for(int i=0;i<ROW;i++){
+		for(int j=0;j<COLUMN;j++){
+			if((level+i*COLUMN+j)->symbol=='O'){
+				if((level+i*COLUMN+j)->flag==flag_loser){
+					(level+i*COLUMN+j)->points=(level+i*COLUMN+j)->points-1;
+					return;
 				}
-		}
-
-
-	else if(( (level+((x+1)*COLUMN)+(y))->symbol == '8' ) || ((level+*startx*COLUMN+*starty+1))->symbol == '8'||
-		((level+((*startx)*COLUMN))+(*starty-1))->symbol == '8' ||(level+((x-1)*COLUMN)+(y))->symbol == '8' ){
-			if(( (level+((x+1)*COLUMN)+(y))->symbol == '8' )){
-				tmpx=x+1;
-				tmpy=y;
-				}
-			else if( ((level+*startx*COLUMN+*starty+1))->symbol == '8' ){
-				tmpx=x;
-				tmpy=y+1;
-				}
-			else if(((level+((*startx)*COLUMN))+(*starty-1))->symbol == '8' ){
-				tmpx=x;
-				tmpy=y-1;
-				}
-			else if((level+((x-1)*COLUMN)+(y))->symbol == '8'){
-				tmpx=x-1;
-				tmpy=y;
-				}
-
-			if(((level+((*startx)*COLUMN))+(*starty))->flag == 2){
-				//assegna flag giocatore
-				(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-				strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-				(level+((*startx)*COLUMN)+(*starty))->flag=0;
-				(level+((*startx)*COLUMN)+(*starty))->solid=0;
-				(level+((*startx)*COLUMN)+(*starty))->points=points+1;
-				//remove past position
-				(level+(((tmpx)*COLUMN))+(tmpy))->symbol='.';
-				strcpy(((level+((tmpx)*COLUMN))+(tmpy))->title,"area");
-				(level+(((tmpx)*COLUMN))+(tmpy))->flag=0;
-				(level+(((tmpx)*COLUMN))+(tmpy))->solid=1;
-				(level+(((tmpx)*COLUMN))+(tmpy))->points=0;
-			}
-		}
-	else if(( (level+((x+1)*COLUMN)+(y))->symbol == '7' ) || ((level+*startx*COLUMN+*starty+1))->symbol == '7'||
-		((level+((*startx)*COLUMN))+(*starty-1))->symbol == '7' ||(level+((x-1)*COLUMN)+(y))->symbol == '7'){
-
-			if(( (level+((x+1)*COLUMN)+(y))->symbol == '7' )){
-				tmpx=x+1;
-				tmpy=y;
-				}
-			else if( ((level+*startx*COLUMN+*starty+1))->symbol == '7' ){
-				tmpx=x;
-				tmpy=y+1;
-				}
-			else if(((level+((*startx)*COLUMN))+(*starty-1))->symbol == '7' ){
-				tmpx=x;
-				tmpy=y-1;
-				}
-			else if((level+((x-1)*COLUMN)+(y))->symbol == '7'){
-				tmpx=x-1;
-				tmpy=y;
-				}
-
-			if(((level+((*startx)*COLUMN))+(*starty))->flag == 3){
-				//assegna flag giocatore
-				(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-				strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-				(level+((*startx)*COLUMN)+(*starty))->flag=0;
-				(level+((*startx)*COLUMN)+(*starty))->solid=0;
-				(level+((*startx)*COLUMN)+(*starty))->points=points+1;
-				//remove past position
-				(level+(((tmpx)*COLUMN))+(tmpy))->symbol='.';
-				strcpy(((level+((tmpx)*COLUMN))+(tmpy))->title,"area");
-				(level+(((tmpx)*COLUMN))+(tmpy))->flag=0;
-				(level+(((tmpx)*COLUMN))+(tmpy))->solid=1;
-				(level+(((tmpx)*COLUMN))+(tmpy))->points=0;
+		    }
 		}
 	}
-	else if(( (level+((x+1)*COLUMN)+(y))->symbol == '6' ) || ((level+*startx*COLUMN+*starty+1))->symbol == '6'||
-		((level+((*startx)*COLUMN))+(*starty-1))->symbol == '6' ||(level+((x-1)*COLUMN)+(y))->symbol == '6' ){
-
-				if(( (level+((x+1)*COLUMN)+(y))->symbol == '6' )){
-					tmpx=x+1;
-					tmpy=y;
-					}
-				else if( ((level+*startx*COLUMN+*starty+1))->symbol == '6' ){
-					tmpx=x;
-					tmpy=y+1;
-					}
-				else if(((level+((*startx)*COLUMN))+(*starty-1))->symbol == '6' ){
-					tmpx=x;
-					tmpy=y-1;
-					}
-				else if((level+((x-1)*COLUMN)+(y))->symbol == '6'){
-					tmpx=x-1;
-					tmpy=y;
-					}
-
-				if(((level+((*startx)*COLUMN))+(*starty))->flag == 4){
-					//assegna flag giocatore
-					(level+((*startx)*COLUMN)+(*starty))->symbol ='O';
-					strcpy((level+((*startx)*COLUMN)+(*starty))->title,username);
-					(level+((*startx)*COLUMN)+(*starty))->flag=0;
-					(level+((*startx)*COLUMN)+(*starty))->solid=0;
-					(level+((*startx)*COLUMN)+(*starty))->points=points+1;
-					//remove past position
-					(level+(((tmpx)*COLUMN))+(tmpy))->symbol='.';
-					strcpy(((level+((tmpx)*COLUMN))+(tmpy))->title,"area");
-					(level+(((tmpx)*COLUMN))+(tmpy))->flag=0;
-					(level+(((tmpx)*COLUMN))+(tmpy))->solid=1;
-					(level+(((tmpx)*COLUMN))+(tmpy))->points=0;
-			}
-		}
-
-
-	return;
-
 }
 
-
-//funzione timeout che se il tempo finisce, blocca tutto
-void timeout();
 
 
 
@@ -566,7 +450,6 @@ for(int i=0;i<ROW;i++){
 				max=(level+i*COLUMN+j)->points;
 
 			strcpy(winner,(level+i*COLUMN+j)->title);
-			printf("%d %s \n", max, winner);
 		}
 		}
 	}

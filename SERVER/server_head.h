@@ -20,8 +20,6 @@
 
 #define LOCKS 4
 
-#define TIMELIMIT_S 5
-#define TIMELIMIT_US 1000
 
 
 struct map_struct{
